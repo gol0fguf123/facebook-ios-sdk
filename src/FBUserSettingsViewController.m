@@ -37,9 +37,31 @@
 @property (copy, nonatomic) FBSessionStateHandler sessionStateHandler;
 @property (copy, nonatomic) FBRequestHandler requestHandler;
 
+- (void)loginLogoutButtonPressed:(id)sender;
+- (void)sessionStateChanged:(FBSession *)session
+                      state:(FBSessionState)state
+                      error:(NSError *)error;
+- (void)openSession;
+- (void)updateControls;
+- (void)updateBackgroundImage;
+
 @end
 
 @implementation FBUserSettingsViewController
+
+@synthesize profilePicture = _profilePicture;
+@synthesize connectedStateLabel = _connectedStateLabel;
+@synthesize me = _me;
+@synthesize loginLogoutButton = _loginLogoutButton;
+@synthesize permissions = _permissions;
+@synthesize readPermissions = _readPermissions;
+@synthesize publishPermissions = _publishPermissions;
+@synthesize defaultAudience = _defaultAudience;
+@synthesize attemptingLogin = _attemptingLogin;
+@synthesize backgroundImageView = _backgroundImageView;
+@synthesize bundle = _bundle;
+@synthesize sessionStateHandler = _sessionStateHandler;
+@synthesize requestHandler = _requestHandler;
 
 #pragma mark View controller lifecycle
 
@@ -212,9 +234,6 @@
     self.loginLogoutButton.titleLabel.shadowOffset = CGSizeMake(0.0, 1.0);
     [self.canvasView addSubview:self.loginLogoutButton];
 
-    if ([FBSession activeSessionIfOpen] == nil) {
-        [self openSession:NO];
-    }
     // We need to know when the active session changes state.
     // We use the same handler for both, because we don't actually care about distinguishing between them.
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -346,7 +365,7 @@
 }
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-- (void)openSession:(BOOL)allowLoginUI {
+- (void)openSession {
     if ([self.delegate respondsToSelector:@selector(loginViewControllerWillAttemptToLogUserIn:)]) {
         [(id)self.delegate loginViewControllerWillAttemptToLogUserIn:self];
     }
@@ -362,12 +381,12 @@
     //    when the user presses login
     if (self.permissions) {
         [FBSession openActiveSessionWithPermissions:self.permissions
-                                       allowLoginUI:allowLoginUI
+                                       allowLoginUI:YES
                                     defaultAudience:self.defaultAudience
                                   completionHandler:self.sessionStateHandler];
     } else if (![self.publishPermissions count]) {
         [FBSession openActiveSessionWithReadPermissions:self.readPermissions
-                                           allowLoginUI:allowLoginUI
+                                           allowLoginUI:YES
                                       completionHandler:self.sessionStateHandler];
     } else {
         // combined read and publish permissions will usually fail, but if the app wants us to
@@ -380,7 +399,7 @@
         }
         [FBSession openActiveSessionWithPublishPermissions:permissions
                                            defaultAudience:self.defaultAudience
-                                              allowLoginUI:allowLoginUI
+                                              allowLoginUI:YES
                                          completionHandler:self.sessionStateHandler];
     }
 }
@@ -408,7 +427,7 @@
                            valueToSum:nil
                            parameters:@{ @"logging_in" : @YES }
                               session:FBSession.activeSessionIfExists];
-        [self openSession:YES];
+        [self openSession];
     }
 }
 

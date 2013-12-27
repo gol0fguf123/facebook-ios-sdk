@@ -22,7 +22,7 @@
 #import "FBError.h"
 #import "FBLogger.h"
 #import "FBRequest.h"
-#import "FBSession+Internal.h"
+#import "FBSession.h"
 #import "FBUtility.h"
 #import "FacebookSDK.h"
 
@@ -65,7 +65,6 @@ static NSString *g_defaultBundleName = nil;
 static NSString *g_defaultFacebookDomainPart = nil;
 static CGFloat g_defaultJPEGCompressionQuality = 0.9;
 static NSUInteger g_betaFeatures = 0;
-static FBRestrictedTreatment g_restrictedTreatment;
 
 + (NSString *)sdkVersion {
     return FB_IOS_SDK_VERSION_STRING;
@@ -119,17 +118,6 @@ static FBRestrictedTreatment g_restrictedTreatment;
         g_defaultDisplayName = [bundle objectForInfoDictionaryKey:FBPLISTDisplayNameKey];
     }
     return g_defaultDisplayName;
-}
-
-+ (void)setrestrictedTreatment:(FBRestrictedTreatment)treatment {
-    g_restrictedTreatment = treatment;
-    if (treatment == FBRestrictedTreatmentYES && [FBSession activeSessionIfOpen]) {
-        [FBSession.activeSession close];
-    }
-}
-
-+ (FBRestrictedTreatment)restrictedTreatment {
-    return g_restrictedTreatment;
 }
 
 + (void)setDefaultAppID:(NSString*)appID {

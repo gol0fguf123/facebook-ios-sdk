@@ -24,8 +24,6 @@
 #import "SCProtocols.h"
 #import "TargetConditionals.h"
 
-#define DEFAULT_IMAGE_URL @"http://facebooksampleapp.com/scrumptious/static/images/logo.png"
-
 @interface SCViewController() < UITableViewDataSource,
                                 UIImagePickerControllerDelegate,
                                 FBFriendPickerDelegate,
@@ -160,10 +158,8 @@
     // Create an Open Graph eat action with the meal, our location, and the people we were with.
     id<SCOGEatMealAction> action = [self actionFromMealInfo];
 
-    id image = DEFAULT_IMAGE_URL;
     if (self.selectedPhoto) {
-        image = @[@{@"url":@"{result=stagedphoto:$.uri}", @"user_generated":@"true"}];
-        action.image = image;
+        action.image = @[ @{ @"url" : @"{result=stagedphoto:$.uri}", @"user_generated" : @"true" } ];
     }
 
     // create the Open Graph meal object for the meal we ate.
@@ -174,7 +170,7 @@
         // Facebook SDK * Object API *
         id object = [FBGraphObject openGraphObjectForPostWithType:@"fb_sample_scrumps:meal"
                                                             title:self.selectedMeal
-                                                            image:image
+                                                            image:@"https://fbcdn-photos-a.akamaihd.net/photos-ak-snc7/v85005/200/233936543368280/app_1_233936543368280_595563194.gif"
                                                               url:nil
                                                       description:[@"Delicious " stringByAppendingString:self.selectedMeal]];
         FBRequest *createObject = [FBRequest requestForPostOpenGraphObject:object];
@@ -331,14 +327,14 @@
 }
 
 - (void)presentShareDialogForMealInfo {
-    id image = DEFAULT_IMAGE_URL;
+    id image = @"https://fbcdn-photos-a.akamaihd.net/photos-ak-snc7/v85005/200/233936543368280/app_1_233936543368280_595563194.gif";
     // Create an Open Graph eat action with the meal, our location, and the people we were with.
     id<SCOGEatMealAction> action = [self actionFromMealInfo];
 
     if (self.selectedPhoto) {
         self.selectedPhoto = [self normalizedImage:self.selectedPhoto];
+        action.image = self.selectedPhoto;
         image = @[@{@"url":self.selectedPhoto, @"user_generated":@"true"}];
-        action.image = image;
     }
 
     id object = [FBGraphObject openGraphObjectForPostWithType:@"fb_sample_scrumps:meal"

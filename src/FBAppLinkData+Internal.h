@@ -20,17 +20,7 @@
 
 @property (readonly) BOOL isValid;
 
-- (id)initWithURL:(NSURL*)url
-        targetURL:(NSURL *)targetURL
-   originalParams:(NSDictionary *)originalQueryParameters
-        arguments:(NSDictionary *)arguments;
-
-- (id) initWithURL:(NSURL*)url
-         targetURL:(NSURL *)targetURL
-               ref:(NSString *)ref
-         userAgent:(NSString *)userAgent
-       refererData:(NSDictionary *)refererData
-    originalParams:(NSDictionary *)originalQueryParameters;
+- (id)initWithURL:(NSURL*)url targetURL:(NSURL *)targetURL ref:(NSArray *)ref originalQueryParameters:(NSDictionary *)originalQueryParameters arguments:(NSDictionary *)arguments;
 
 + (FBAppLinkData *)createFromURL:(NSURL *)url;
 
