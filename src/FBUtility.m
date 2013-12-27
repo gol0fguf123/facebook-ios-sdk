@@ -21,7 +21,7 @@
 #import "FBRequest+Internal.h"
 #import "FBSession.h"
 #import "FBDynamicFrameworkLoader.h"
-#import "FBSettings+Internal.h"
+#import "FBSettings.h"
 
 #import <AdSupport/AdSupport.h>
 #include <sys/time.h>
@@ -341,9 +341,6 @@ static NSDate *g_fetchedAppSettingsTimestamp = nil;
 }
 
 + (FBAdvertisingTrackingStatus)advertisingTrackingStatus {
-    if ([FBSettings restrictedTreatment] == FBRestrictedTreatmentYES) {
-        return AdvertisingTrackingDisallowed;
-    }
     FBAdvertisingTrackingStatus status = AdvertisingTrackingUnspecified;
     Class ASIdentifierManagerClass = [FBDynamicFrameworkLoader loadClass:@"ASIdentifierManager" withFramework:@"AdSupport"];
     if ([ASIdentifierManagerClass class]) {

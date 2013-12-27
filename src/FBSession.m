@@ -336,16 +336,6 @@ static FBSession *g_activeSession = nil;
         self.loginHandler = handler;
     }
 
-    if ([FBSettings restrictedTreatment] == FBRestrictedTreatmentYES) {
-        NSError* error = [self errorLoginFailedWithReason:FBErrorLoginFailedReasonOtherError
-                                                errorCode:[@(FBErrorOperationDisallowedForRestrictedTreament) stringValue]
-                                               innerError:nil];
-        [self transitionAndCallHandlerWithState:FBSessionStateClosedLoginFailed
-                                          error:error
-                                      tokenData:nil
-                                    shouldCache:NO];
-        return;
-    }
     // normal login depends on the availability of a valid cached token
     if (self.state == FBSessionStateCreated) {
 
@@ -717,11 +707,7 @@ static FBSession *g_activeSession = nil;
             isValidTransition = statePrior == FBSessionStateCreated;
             break;
         case FBSessionStateClosedLoginFailed:
-            isValidTransition = (
-                                 statePrior == FBSessionStateCreated ||
-                                 statePrior == FBSessionStateCreatedTokenLoaded ||
-                                 statePrior == FBSessionStateCreatedOpening
-                                 );
+            isValidTransition = statePrior == FBSessionStateCreatedOpening;
             break;
         case FBSessionStateOpenTokenExtended:
             isValidTransition = (

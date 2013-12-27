@@ -25,7 +25,7 @@
 #import "FBSession+Internal.h"
 #import "FBSessionAppEventsState.h"
 #import "FBSessionManualTokenCachingStrategy.h"
-#import "FBSettings+Internal.h"
+#import "FBSettings.h"
 #import "FBUtility.h"
 
 //
@@ -135,6 +135,7 @@ typedef enum {
 @property (readwrite, atomic) FBAppEventsFlushBehavior     flushBehavior;
 @property (readwrite, atomic) BOOL                         haveOutstandingPersistedData;
 @property (readwrite, atomic, retain) FBSession                   *lastSessionLoggedTo;
+@property (readwrite, atomic, retain) FBSession                   *anonymousSession;
 @property (readwrite, atomic, retain) NSTimer                     *flushTimer;
 @property (readwrite, atomic, retain) NSTimer                     *attributionIDRecheckTimer;
 @property (readwrite, atomic) AppSupportsAttributionStatus appSupportsAttributionStatus;
@@ -145,7 +146,6 @@ typedef enum {
 
 // Dictionary from appIDs to ClientToken-based app-authenticated session for that appID.
 @property (readwrite, atomic, retain) NSMutableDictionary         *appAuthSessions;
-@property (readwrite, atomic, retain) NSMutableDictionary *anonymousSessions;
 
 
 @end
@@ -164,6 +164,22 @@ const int NUM_LOG_EVENTS_TO_TRY_TO_FLUSH_AFTER       = 100;
 const int FLUSH_PERIOD_IN_SECONDS                    = 60;
 const int APP_SUPPORTS_ATTRIBUTION_ID_RECHECK_PERIOD = 60 * 60 * 24;
 const int MAX_IDENTIFIER_LENGTH                      = 40;
+
+
+
+@synthesize
+    flushBehavior = _flushBehavior,
+    haveOutstandingPersistedData = _haveOutstandingPersistedData,
+    lastSessionLoggedTo = _lastSessionLoggedTo,
+    anonymousSession = _anonymousSession,
+    appAuthSessions = _appAuthSessions,
+    flushTimer = _flushTimer,
+    attributionIDRecheckTimer = _attributionIDRecheckTimer,
+    appSupportsAttributionStatus = _appSupportsAttributionStatus,
+    appSupportsImplicitLogging = _appSupportsImplicitLogging,
+    haveFetchedAppSettings = _haveFetchedAppSettings,
+    eventNameRegex = _eventNameRegex,
+    validatedIdentifiers = _validatedIdentifiers;
 
 #pragma mark - logEvent variants
 
@@ -383,7 +399,6 @@ const int MAX_IDENTIFIER_LENGTH                      = 40;
         self.appSupportsAttributionStatus = AppSupportsAttributionUnknown;
 
         self.appAuthSessions = [[[NSMutableDictionary alloc] init] autorelease];
-        _anonymousSessions = [[NSMutableDictionary alloc] init];
 
         // Timer fires unconditionally on a regular interval... handler decides whether to call flush.
         self.flushTimer = [NSTimer scheduledTimerWithTimeInterval:FLUSH_PERIOD_IN_SECONDS
@@ -750,13 +765,7 @@ const int MAX_IDENTIFIER_LENGTH                      = 40;
     // Assume that if we're not using an appAuthSession (built from the Client Token) or the anonymous session,
     // then we have a logged in user token.
     FBSession *appAuthSession = [self.appAuthSessions objectForKey:session.appID];
-    if (session == appAuthSession) {
-        return NO;
-    }
-    NSSet *matchingAnonymousSessions = [self.anonymousSessions keysOfEntriesPassingTest:^BOOL(id key, id obj, BOOL *stop) {
-        return (obj == session);
-    }];
-    return matchingAnonymousSessions.count == 0;
+    return session != appAuthSession && session != self.anonymousSession;
 }
 
 
@@ -801,23 +810,21 @@ const int MAX_IDENTIFIER_LENGTH                      = 40;
             }
             session = appAuthSession;
 
-        } else if (appID) {
-            // Note appID cannot be nil at this point but we have a conditional to satisfy clang.
-            FBSession *anonymousSession = self.anonymousSessions[appID];
+        } else {
+
             // No clientToken, create session without access token that can be used for logging the events in 'eventsNotRequiringToken', preferring
             // appID coming in with the incoming session (or the activeSession), even if they don't have an access token.
-            if (!anonymousSession) {
+            if (!self.anonymousSession) {
 
                 @synchronized(self) {
 
-                    if (!anonymousSession) {  // in case it snuck in
-                        anonymousSession = [FBAppEvents unaffinitizedSessionFromToken:[FBSessionTokenCachingStrategy nullCacheInstance]
+                    if (!self.anonymousSession) {  // in case it snuck in
+                        self.anonymousSession = [FBAppEvents unaffinitizedSessionFromToken:[FBSessionTokenCachingStrategy nullCacheInstance]
                                                                                      appID:appID];
-                        self.anonymousSessions[appID] = anonymousSession;
                     }
                 }
             }
-            session = anonymousSession;
+            session = self.anonymousSession;
         }
 
     }
@@ -1123,8 +1130,7 @@ const int MAX_IDENTIFIER_LENGTH                      = 40;
     // 3) if we have a user session token, then no need to send attribution ID / advertiser ID back as the udid parameter
     // 4) otherwise, send back the udid parameter.
 
-    if ([FBUtility advertisingTrackingStatus] == AdvertisingTrackingDisallowed || [FBSettings limitEventAndDataUsage]
-        || [FBSettings restrictedTreatment] == FBRestrictedTreatmentYES) {
+    if ([FBUtility advertisingTrackingStatus] == AdvertisingTrackingDisallowed || [FBSettings limitEventAndDataUsage]) {
         return nil;
     }
 

@@ -18,7 +18,6 @@
 
 #import "FBDialogClosePNG.h"
 #import "FBFrictionlessRequestSettings.h"
-#import "FBSettings+Internal.h"
 #import "FBUtility.h"
 #import "Facebook.h"
 
@@ -619,15 +618,6 @@ params   = _params;
 }
 
 - (void)show {
-    if ([FBSettings restrictedTreatment] == FBRestrictedTreatmentYES) {
-        if ([_delegate respondsToSelector:@selector(dialog:didFailWithError:)]) {
-            NSError *error = [NSError errorWithDomain:FacebookSDKDomain
-                                                 code:FBErrorOperationDisallowedForRestrictedTreament
-                                             userInfo:nil];
-            [_delegate dialog:self didFailWithError:error];
-        }
-        return;
-    }
     [self load];
     [self sizeToFitOrientation:NO];
 
